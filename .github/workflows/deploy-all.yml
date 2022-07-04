@@ -61,10 +61,12 @@ jobs:
             Foreach ($Solution in Get-ChildItem -Path "./repositories" -File -Recurse -Filter "*.sln") {
               Write-Output $Solution.Name;
               Set-Location $Solution.Directory;
-              nuget restore $Solution;
+
+              # NuGet verbosity levels https://github.com/NuGet/Home/issues/8089#issuecomment-940929461
+              nuget restore $Solution -Verbosity detailed;
 
               Foreach ($Package in $UpdatePackages) {
-                nuget update $Solution -Id $Package
+                nuget update $Solution -Id $Package -Verbosity detailed;
               }
             }
 
