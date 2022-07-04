@@ -1,3 +1,4 @@
+$PSDefaultParameterValues['*:Verbose'] = $true;
 Function Remove-Folder {
     Param (
         [String] $FolderName
