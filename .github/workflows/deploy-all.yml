@@ -1,0 +1,52 @@
+name: Build and Deploy Mods
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+  #schedule:
+    #- cron: '0 */1 * * *' # Every hour
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: windows-latest
+    steps:
+      - name: Create/Restore PowerShell Module Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/Documents/PowerShell
+          key: ${{ runner.os }}-powershell-${{ hashFiles('./*.ps1') }}${{ hashFiles('./*.psm1') }}${{ hashFiles('./*.psd1') }}
+          restore-keys: |
+            ${{ runner.os }}-powershell-
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Clone Mod Git Repositories
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: ${{ github.workspace }}/clone.ps1
+      - name: Create/Restore NuGet Dependency Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.config') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      - name: Update Mods NuGet Dependencies
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: ${{ github.workspace }}/update.ps1
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1.0.5
+      - name: Build Mods
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: ${{ github.workspace }}/build.ps1
+      - name: Combine Mods
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: ${{ github.workspace }}/merge.ps1
