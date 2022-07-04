@@ -26,7 +26,19 @@ jobs:
       - name: Clone Mod Git Repositories
         uses: Amadevus/pwsh-script@v2
         with:
-          script: ${{ github.workspace }}/clone.ps1
+          script: |
+            Import-Module -Name ./core.psm1;
+
+            Remove-Folder("repositories");
+            New-Folder("repositories");
+
+            Foreach ($RepositoryName in Get-Content .\repositories.txt) {
+                $RepositoryUrl = "https://github.com/Distance-Modding/${RepositoryName}.git";
+                $Destination = "./repositories/${RepositoryName}";
+                
+                # Clone mod repository in repositories/
+                git clone --recurse-submodules -j8 $RepositoryUrl $Destination;
+            }
       - name: Create/Restore NuGet Dependency Cache
         uses: actions/cache@v3
         with:
@@ -34,19 +46,111 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.config') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1.0.5
       - name: Update Mods NuGet Dependencies
         uses: Amadevus/pwsh-script@v2
         with:
-          script: ${{ github.workspace }}/update.ps1
+          script: |
+            Import-Module -Name ./core.psm1;
+
+            Push-Location $(Get-Location);
+
+            $UpdatePackages = Get-Content ./nuget-update-packages.txt;
+
+            Foreach ($Solution in Get-ChildItem -Path "./repositories" -File -Recurse -Filter "*.sln") {
+              Write-Output $Solution.Name;
+              Set-Location $Solution.Directory;
+              nuget restore $Solution;
+
+              Foreach ($Package in $UpdatePackages) {
+                nuget update $Solution -Id $Package
+              }
+            }
+
+            Pop-Location;
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1.0.5
       - name: Build Mods
         uses: Amadevus/pwsh-script@v2
         with:
-          script: ${{ github.workspace }}/build.ps1
+          script: |
+            Import-Module -Name ./core.psm1;
+
+            Function Install-PSModule {
+              Param (
+                    [String] $Name
+                )
+                If (-Not $(Get-Module -ListAvailable -Name PowerShellGet)) {
+                Write-Host "Setting up module PowerShellGet...";
+                Find-Module -Name PowerShellGet | Install-Module;
+              }
+
+              If (-Not $(Get-Module -ListAvailable -Name $Name)) {
+                Write-Host "Installing module $Name...";
+                Install-Module $Name -Scope CurrentUser -Force;
+              }
+              Else
+              {
+                Write-Host "Module $Name already Installed";
+              }
+            }
+
+            # Install VSSetup module
+            Install-PSModule VSSetup;
+
+            # Install Build utils command
+            Install-PSModule BuildUtils;
+
+            # ----- RUN BUILD -----
+
+            $MSBuild = Get-LatestMsbuildLocation
+            Set-Alias msbuild $MSBuild
+
+            $Project = "$(Get-Location)/Build.proj";
+
+            Push-Location .\repositories;
+            msbuild $Project -m -maxcpucount:4;
+            Pop-Location;
       - name: Combine Mods
         uses: Amadevus/pwsh-script@v2
         with:
-          script: ${{ github.workspace }}/merge.ps1
+          script: |
+            Import-Module -Name ./core.psm1;
+
+            # Reset build folders if it exists
+            Remove-Folder("build");
+            Remove-Folder("modpack");
+            New-Folder("build");
+            New-Folder("modpack");
+
+            $CommonBuild = "$(Get-Location)/build";
+
+            Foreach ($Repository in Get-ChildItem -Path "./repositories" -Directory)
+            {
+              $BuildDir = "$($Repository.FullName)\Build";
+
+              If (Test-Path -Path $BuildDir) {
+                    Get-ChildItem -Path "$BuildDir" | ForEach-Object {
+                        Copy-Item -Path $_.FullName -Destination "$CommonBuild" -Force -Recurse;
+                    }
+                }
+            }
+
+
+            Foreach ($Artifact in Get-ChildItem -Path "./build" -Directory -Exclude "${ModpackName}/Centrifuge*")
+            {
+              Write-Output $Artifact;
+
+                Get-ChildItem -Path "$Artifact" | ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination "./modpack" -Force -Recurse;
+                }
+            }
+
+            $MergedName = "Distance All Mods";
+
+            Move-Item -Path "./modpack" -Destination "./build/${MergedName}";
+
+            Get-ChildItem -Path "./build/${MergedName}" | ForEach-Object {
+                Compress-Archive -Path $_.FullName -DestinationPath "./build/${MergedName}.zip" -Update -CompressionLevel Optimal;
+            }
