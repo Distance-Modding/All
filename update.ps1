@@ -6,7 +6,7 @@ Push-Location $(Get-Location);
 $PackageList = Get-Content ./nuget-update-packages.txt;
 
 Foreach ($Solution in Get-ChildItem -Path "./repositories" -File -Recurse -Filter "*.sln") {
-	Write-Host "Updating dependencies for $Solution.Name...";
+	Write-Host "Updating dependencies for $($Solution.Name)...";
 	Set-Location $Solution.Directory;
 	
 	# NuGet verbosity levels https://github.com/NuGet/Home/issues/8089#issuecomment-940929461
