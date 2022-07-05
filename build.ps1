@@ -2,9 +2,9 @@ Import-Module -Name ./core.psm1;
 
 Function Install-PSModule {
 	Param (
-        [String] $Name
-    )
-    If (-Not $(Get-Module -ListAvailable -Name PowerShellGet)) {
+		[String] $Name
+	)
+	If (-Not $(Get-Module -ListAvailable -Name PowerShellGet)) {
 		Write-Host "Setting up module PowerShellGet...";
 		Find-Module -Name PowerShellGet | Install-Module;
 	}
@@ -13,8 +13,7 @@ Function Install-PSModule {
 		Write-Host "Installing module $Name...";
 		Install-Module $Name -Scope CurrentUser -Force;
 	}
-	Else
-	{
+	Else {
 		Write-Host "Module $Name already Installed";
 	}
 }
@@ -25,13 +24,14 @@ Install-PSModule VSSetup;
 # Install Build utils command
 Install-PSModule BuildUtils;
 
+./get-nuget.ps1;
+
 # ----- RUN BUILD -----
 
-$MSBuild = Get-LatestMsbuildLocation
-Set-Alias msbuild $MSBuild
+Set-Alias msbuild $(Get-LatestMsbuildLocation);
 
 $Project = "$(Get-Location)/Build.proj";
 
 Push-Location .\repositories;
-msbuild $Project -m -maxcpucount:4;
+& msbuild $Project -m -maxcpucount:4 2>&1;
 Pop-Location;
