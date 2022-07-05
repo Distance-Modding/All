@@ -5,8 +5,8 @@ on:
       - main
     paths-ignore:
       - "*.md"
-  #schedule:
-    #- cron: '0 */1 * * *' # Every hour
+  schedule:
+    - cron: '0 */1 * * *' # Every hour
 jobs:
   build:
     name: Build and Deploy
@@ -133,7 +133,7 @@ jobs:
               $BuildDir = "$($Repository.FullName)\Build";
 
               If (Test-Path -Path $BuildDir) {
-                Write-Host "Copying ${Repository.Name} to common build directory...";
+                Write-Host "Copying ${$Repository.Name} to common build directory...";
                 Foreach ($Element in Get-ChildItem -Path "$BuildDir") {
                   Copy-Item -Path $Element.FullName -Destination "$CommonBuild" -Force -Recurse;
                 }
@@ -142,20 +142,34 @@ jobs:
 
             Foreach ($Artifact in Get-ChildItem -Path "./build" -Directory -Exclude "${ModpackName}/Centrifuge*")
             {
-              Write-Host "Adding ${Artifact.Name} to merged mod artifact...";
+              Write-Host "Adding ${$Artifact.Name} to merged mod artifact...";
 
               Foreach ($Element in Get-ChildItem -Path "$Artifact") {
                 Copy-Item -Path $Element.FullName -Destination "./modpack" -Force -Recurse;
               }
             }
 
-            $MergedName = "Distance All Mods";
+            $MergedName = "All Mods";
 
             Move-Item -Path "./modpack" -Destination "./build/${MergedName}";
             
-            Write-Host "COmpressing combined mod artifact...";
+            Write-Host "Compressing combined mod artifact...";
 
             Foreach ($Element in Get-ChildItem -Path "./build/${MergedName}") {
-              Write-Host "Adding ${Element.Name} to combined archive...";
+              Write-Host "Adding ${$Element.Name} to combined archive...";
               Compress-Archive -Path $Element.FullName -DestinationPath "./build/${MergedName}.zip" -Update -CompressionLevel Optimal;
             }
+      - name: Combine Mods
+        id: time
+        uses: Amadevus/pwsh-script@v2
+        with:
+          script: Write-Host $(Get-Date -Format 'dd/MM/yyyy HH:mm K');
+      - name: Release Assets
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
+          prerelease: true
+          title: "Release - ${{ steps.time.outputs.result }}"
+          files: |
+            build/*.zip
