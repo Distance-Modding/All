@@ -50,18 +50,17 @@ jobs:
         uses: Amadevus/pwsh-script@v2
         with:
           script: ./merge.ps1;
-      - name: Generate Release Date Info
-        uses: Amadevus/pwsh-script@v2
+      - name: Get Current Time
+        uses: josStorer/get-current-time@v2.0.0
         id: date
         with:
-          script: |
-            Write-Host("::set-output name=result::$(Get-Date -Format 'dd/mm/yyyy HH:mm K')");
+          format: 'dddd MMMM Do YYYY at HH:mm'
       - name: Release Assets
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
           prerelease: true
-          title: "Release - ${{ steps.date.outputs.result }}"
+          title: "Last build on ${{ steps.date.outputs.formattedTime }} (UTC)"
           files: |
             build/*.zip
