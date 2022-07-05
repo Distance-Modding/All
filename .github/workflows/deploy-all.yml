@@ -54,13 +54,13 @@ jobs:
         uses: josStorer/get-current-time@v2.0.0
         id: date
         with:
-          format: 'dddd MMMM Do YYYY at HH:mm (UTC)'
+          format: 'dddd MMMM Do YYYY HH:mm'
       - name: Release Assets
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
-          prerelease: true
-          title: "Last build on ${{ steps.date.outputs.formattedTime }}"
+          prerelease: false
+          title: "Release - ${{ steps.date.outputs.formattedTime }}"
           files: |
             build/*.zip
