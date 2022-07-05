@@ -24,9 +24,8 @@ jobs:
         with:
           submodules: recursive
       - name: Clone Mod Git Repositories
-        uses: Amadevus/pwsh-script@v2
-        with:
-          script: ./clone.ps1;
+        shell: pwsh
+        run: ./clone.ps1;
       - name: Create/Restore NuGet Dependency Cache
         uses: actions/cache@v3
         with:
@@ -37,19 +36,16 @@ jobs:
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
       - name: Update Mods NuGet Dependencies
-        uses: Amadevus/pwsh-script@v2
-        with:
-          script: ./update.ps1;
+        shell: pwsh
+        run: ./update.ps1;
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Build Mods
-        uses: Amadevus/pwsh-script@v2
-        with:
-          script: ./build.ps1;
+        shell: pwsh
+        run: ./build.ps1;
       - name: Combine Mods
-        uses: Amadevus/pwsh-script@v2
-        with:
-          script: ./merge.ps1;
+        shell: pwsh
+        run: ./merge.ps1;
       - name: Get Current Time
         uses: josStorer/get-current-time@v2.0.0
         id: date
