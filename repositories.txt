@@ -17,7 +17,9 @@ Mod.NoEditorNumberLimits
 Mod.NoServerLimit
 Mod.ObjectDivider
 Mod.OverheatMeter
+Mod.ReplayIntensifies
 Mod.SceneDumper
+Mod.SplashSkip
 Mod.TextureModifier
 Mod.TrackAttachToTrack
 Mod.TrackMusic
