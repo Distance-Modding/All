@@ -1,7 +1,7 @@
 name: Build and Deploy Mods
 on:
   schedule:
-    - cron: '0 */1 * * *' # Every hour
+    - cron: '0 0 */1 * *' # Every day
   push:
     branches:
       - main
